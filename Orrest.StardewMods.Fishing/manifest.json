@@ -1,0 +1,10 @@
+{
+    "Name": "Orrest.StardewMods.Fishing",
+    "Author": "Orrest",
+    "Version": "1.0.0",
+    "Description": "A Stardew Valley fishing mod.",
+    "UniqueID": "Orrest.Fishing",
+    "EntryDll": "Orrest.StardewMods.Fishing.dll",
+    "MinimumApiVersion": "4.0.0",
+    "UpdateKeys": []
+}
