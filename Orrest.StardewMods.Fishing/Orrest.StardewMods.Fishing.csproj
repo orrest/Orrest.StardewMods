@@ -15,6 +15,10 @@
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Orrest.StardewMods.Common\Orrest.StardewMods.Common.csproj" />
+  </ItemGroup>
+
   <!--
     Generate a launchSettings.json that launches the game via SMAPI so the mod can be
     debugged from the IDE. The game path comes from the mod build package's $(GamePath),

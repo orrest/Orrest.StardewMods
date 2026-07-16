@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Shared constants and helpers for the Orrest.StardewMods projects. This is a plain
+    class library, not a mod: it has no manifest and is not deployed to the game's Mods
+    folder. Individual mods reference it and ship the resulting DLL alongside their own.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Orrest.StardewMods.Common</RootNamespace>
+  </PropertyGroup>
+
+</Project>
