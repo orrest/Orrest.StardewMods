@@ -1,0 +1,10 @@
+{
+    "Name": "Orrest.StardewMods.Pokemon",
+    "Author": "Orrest",
+    "Version": "%ProjectVersion%",
+    "Description": "A Pokemon mod: chickens may lay a Squirtle egg that hatches into a roaming companion that waters your crops.",
+    "UniqueID": "Orrest.Pokemon",
+    "EntryDll": "Orrest.StardewMods.Pokemon.dll",
+    "MinimumApiVersion": "4.0.0",
+    "UpdateKeys": []
+}

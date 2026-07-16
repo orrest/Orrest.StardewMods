@@ -4,4 +4,5 @@
   </Folder>
   <Project Path="Orrest.StardewMods.Common/Orrest.StardewMods.Common.csproj" Id="a1b2c3d4-e5f6-7890-abcd-ef0123456789" />
   <Project Path="Orrest.StardewMods.Fishing/Orrest.StardewMods.Fishing.csproj" Id="9cd0715e-d674-45e5-8cbc-04489770880b" />
+  <Project Path="Orrest.StardewMods.Pokemon/Orrest.StardewMods.Pokemon.csproj" Id="b3c1d2e3-f4a5-6789-0bcd-ef1234567890" />
 </Solution>

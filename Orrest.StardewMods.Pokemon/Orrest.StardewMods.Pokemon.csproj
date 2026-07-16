@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- ModBuildConfig only references 0Harmony.dll when this is enabled. -->
+    <EnableHarmony>true</EnableHarmony>
+    <!-- Single source of truth for the mod version. ModBuildConfig injects this
+         into manifest.json's %ProjectVersion% placeholder at build time. -->
+    <Version>1.0.0</Version>
+    <RootNamespace>Orrest.StardewMods.Pokemon</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Orrest.StardewMods.Common\Orrest.StardewMods.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Ship mod assets alongside the DLL. ModBuildConfig copies these to the output. -->
+    <None Update="assets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!--
+    Generate a launchSettings.json that launches the game via SMAPI so the mod can be
+    debugged from the IDE. The game path comes from the mod build package's $(GamePath),
+    so this stays portable across machines. Forward slashes are used in the JSON to avoid
+    backslash escaping; both .NET and the OS accept them.
+  -->
+  <Target Name="GenerateSmapiLaunchSettings"
+          BeforeTargets="PrepareForBuild"
+          Condition="'$(GamePath)' != '' And Exists('$(GamePath)\StardewModdingAPI.exe')">
+    <PropertyGroup>
+      <_SmapiExe>$(GamePath)\StardewModdingAPI.exe</_SmapiExe>
+      <_SmapiExeJson>$(_SmapiExe.Replace('\', '/'))</_SmapiExeJson>
+      <_GameDirJson>$(GamePath.Replace('\', '/'))</_GameDirJson>
+      <_LaunchSettingsJson>{
+  "profiles": {
+    "Stardew Valley (SMAPI)": {
+      "commandName": "Executable",
+      "executablePath": "$(_SmapiExeJson)",
+      "workingDirectory": "$(_GameDirJson)",
+      "commandLineArgs": ""
+    }
+  }
+}</_LaunchSettingsJson>
+    </PropertyGroup>
+    <MakeDir Directories="$(MSBuildProjectDirectory)\Properties" />
+    <WriteLinesToFile File="$(MSBuildProjectDirectory)\Properties\launchSettings.json"
+                      Lines="$(_LaunchSettingsJson)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+
+</Project>
