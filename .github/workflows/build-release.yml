@@ -1,0 +1,77 @@
+name: Build & Release
+
+# Builds the SMAPI mod on every push to master and on version tags.
+# On every build the mod zip is uploaded as a CI artifact; on a `v*` tag a
+# GitHub Release is created and the zip is attached to it.
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build mod
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build (Release)
+        run: dotnet build Orrest.StardewMods.Fishing/Orrest.StardewMods.Fishing.csproj -c Release
+
+      # ModBuildConfig produces a zip named "<ManifestName> <Version>.zip" in the
+      # Release output directory. Find its path so the next steps can use it.
+      - name: Locate release zip
+        id: zip
+        shell: bash
+        run: |
+          zip_path="$(find Orrest.StardewMods.Fishing/bin/Release/net6.0 -maxdepth 1 -type f -name 'Orrest.StardewMods.Fishing *.zip' | head -n 1)"
+          if [ -z "$zip_path" ]; then
+            echo "::error::No release zip was produced by the build."
+            exit 1
+          fi
+          echo "path=$zip_path" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$zip_path")" >> "$GITHUB_OUTPUT"
+          echo "Found release zip: $zip_path"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.name }}
+          path: ${{ steps.zip.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish GitHub Release
+    # Only on version tags.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.zip"
+          generate_release_notes: true
+          draft: false
+          prerelease: false
