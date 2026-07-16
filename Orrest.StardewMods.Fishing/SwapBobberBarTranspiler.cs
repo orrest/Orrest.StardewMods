@@ -1,10 +1,8 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
 using HarmonyLib;
 using StardewValley.Menus;
 using StardewValley.Tools;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace Orrest.StardewMods.Fishing;
 

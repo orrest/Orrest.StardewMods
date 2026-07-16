@@ -1,11 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
-using Orrest.StardewMods.Common;
+using Orrest.StardewMods.Common.Constants;
 using StardewValley;
 using StardewValley.BellsAndWhistles;
 using StardewValley.Extensions;
@@ -29,7 +27,7 @@ public class StepBobberBar : BobberBar
     /// </summary>
     private static readonly FieldInfo SparkleTextField =
         AccessTools.Field(typeof(BobberBar), "sparkleText")
-            ?? throw new InvalidOperationException("Could not find BobberBar.sparkleText field.");
+        ?? throw new InvalidOperationException("Could not find BobberBar.sparkleText field.");
 
     private SparklingText? SparkleText
     {
@@ -47,7 +45,7 @@ public class StepBobberBar : BobberBar
     /// slow cruising speed (≈ <c>StepSpeed * 60</c> px/s over the track) with a chunky,
     /// "step-function" feel. Bump this up for bigger/livelier steps.
     /// </summary>
-    private const float StepSpeed = 2.0f;
+    private const float StepSpeed = 3.0f;
 
     /// <summary>Step is scaled by this while the fish is inside the bar (easier when centered).</summary>
     private const float StepScaleInBar = 0.6f;
@@ -104,10 +102,26 @@ public class StepBobberBar : BobberBar
     /// <summary>Fish (vanilla): reset value (ms) for the fish-size-reduction timer.</summary>
     private const int FishSizeReductionTimerReset = 800;
 
-    public StepBobberBar(string whichFish, float fishSize, bool treasure, List<string> bobbers, string setFlagOnCatch, bool isBossFish, string baitID = "", bool goldenTreasure = false)
-        : base(whichFish, fishSize, treasure, bobbers, setFlagOnCatch, isBossFish, baitID, goldenTreasure)
-    {
-    }
+    public StepBobberBar(
+        string whichFish,
+        float fishSize,
+        bool treasure,
+        List<string> bobbers,
+        string setFlagOnCatch,
+        bool isBossFish,
+        string baitID = "",
+        bool goldenTreasure = false
+    )
+        : base(
+            whichFish,
+            fishSize,
+            treasure,
+            bobbers,
+            setFlagOnCatch,
+            isBossFish,
+            baitID,
+            goldenTreasure
+        ) { }
 
     /// <summary>
     /// Per-frame update. This is a near-verbatim copy of the vanilla
@@ -170,7 +184,10 @@ public class StepBobberBar : BobberBar
         if (everythingShakeTimer > 0f)
         {
             everythingShakeTimer -= time.ElapsedGameTime.Milliseconds;
-            everythingShake = new Vector2((float)Game1.random.Next(-10, 11) / 10f, (float)Game1.random.Next(-10, 11) / 10f);
+            everythingShake = new Vector2(
+                (float)Game1.random.Next(-10, 11) / 10f,
+                (float)Game1.random.Next(-10, 11) / 10f
+            );
             if (everythingShakeTimer <= 0f)
             {
                 everythingShake = Vector2.Zero;
@@ -211,14 +228,33 @@ public class StepBobberBar : BobberBar
             fadeOut = false;
             FishingRod? rod = Game1.player.CurrentTool as FishingRod;
             string? baitId = rod?.GetBait()?.QualifiedItemId;
-            int numCaught = ((bossFish || !(baitId == BaitIds.WildBait) || !(Game1.random.NextDouble() < 0.25 + Game1.player.DailyLuck / 2.0)) ? 1 : 2);
+            int numCaught = (
+                (
+                    bossFish
+                    || !(baitId == Bait.WildBait)
+                    || !(Game1.random.NextDouble() < 0.25 + Game1.player.DailyLuck / 2.0)
+                )
+                    ? 1
+                    : 2
+            );
             if (challengeBaitFishes > 0)
             {
                 numCaught = challengeBaitFishes;
             }
             if (distanceFromCatching > 0.9f && rod != null)
             {
-                rod.pullFishFromWater(whichFish, fishSize, fishQuality, (int)difficulty, treasureCaught, perfect, fromFishPond, setFlagOnCatch, bossFish, numCaught);
+                rod.pullFishFromWater(
+                    whichFish,
+                    fishSize,
+                    fishQuality,
+                    (int)difficulty,
+                    treasureCaught,
+                    perfect,
+                    fromFishPond,
+                    setFlagOnCatch,
+                    bossFish,
+                    numCaught
+                );
             }
             else
             {
@@ -263,30 +299,46 @@ public class StepBobberBar : BobberBar
     /// </summary>
     private void UpdateFishMovement()
     {
-        if (Game1.random.NextDouble() < (double)(difficulty * (float)((motionType != 2) ? 1 : 20) / 4000f) && (motionType != 2 || bobberTargetPosition == -1f))
+        if (
+            Game1.random.NextDouble()
+                < (double)(difficulty * (float)((motionType != 2) ? 1 : 20) / 4000f)
+            && (motionType != 2 || bobberTargetPosition == -1f)
+        )
         {
             float spaceBelow = TrackHeight - bobberPosition;
             float spaceAbove = bobberPosition;
             float percent = Math.Min(99f, difficulty + (float)Game1.random.Next(10, 45)) / 100f;
-            bobberTargetPosition = bobberPosition + (float)Game1.random.Next((int)Math.Min(0f - spaceAbove, spaceBelow), (int)spaceBelow) * percent;
+            bobberTargetPosition =
+                bobberPosition
+                + (float)
+                    Game1.random.Next((int)Math.Min(0f - spaceAbove, spaceBelow), (int)spaceBelow)
+                    * percent;
         }
         switch (motionType)
         {
-        case 4:
-            floaterSinkerAcceleration = Math.Max(floaterSinkerAcceleration - 0.01f, -1.5f);
-            break;
-        case 3:
-            floaterSinkerAcceleration = Math.Min(floaterSinkerAcceleration + 0.01f, 1.5f);
-            break;
+            case 4:
+                floaterSinkerAcceleration = Math.Max(floaterSinkerAcceleration - 0.01f, -1.5f);
+                break;
+            case 3:
+                floaterSinkerAcceleration = Math.Min(floaterSinkerAcceleration + 0.01f, 1.5f);
+                break;
         }
         if (Math.Abs(bobberPosition - bobberTargetPosition) > 3f && bobberTargetPosition != -1f)
         {
-            bobberAcceleration = (bobberTargetPosition - bobberPosition) / ((float)Game1.random.Next(10, 30) + (100f - Math.Min(100f, difficulty)));
+            bobberAcceleration =
+                (bobberTargetPosition - bobberPosition)
+                / ((float)Game1.random.Next(10, 30) + (100f - Math.Min(100f, difficulty)));
             bobberSpeed += (bobberAcceleration - bobberSpeed) / 5f;
         }
         else if (motionType != 2 && Game1.random.NextDouble() < (double)(difficulty / 2000f))
         {
-            bobberTargetPosition = bobberPosition + (float)(Game1.random.NextBool() ? Game1.random.Next(-100, -51) : Game1.random.Next(50, 101));
+            bobberTargetPosition =
+                bobberPosition
+                + (float)(
+                    Game1.random.NextBool()
+                        ? Game1.random.Next(-100, -51)
+                        : Game1.random.Next(50, 101)
+                );
         }
         else
         {
@@ -294,7 +346,13 @@ public class StepBobberBar : BobberBar
         }
         if (motionType == 1 && Game1.random.NextDouble() < (double)(difficulty / 1000f))
         {
-            bobberTargetPosition = bobberPosition + (float)(Game1.random.NextBool() ? Game1.random.Next(-100 - (int)difficulty * 2, -51) : Game1.random.Next(50, 101 + (int)difficulty * 2));
+            bobberTargetPosition =
+                bobberPosition
+                + (float)(
+                    Game1.random.NextBool()
+                        ? Game1.random.Next(-100 - (int)difficulty * 2, -51)
+                        : Game1.random.Next(50, 101 + (int)difficulty * 2)
+                );
         }
         bobberTargetPosition = Math.Max(-1f, Math.Min(bobberTargetPosition, TrackHeight));
         bobberPosition += bobberSpeed + floaterSinkerAcceleration;
@@ -314,8 +372,13 @@ public class StepBobberBar : BobberBar
     /// </summary>
     private void DetectBobberInBar()
     {
-        bobberInBar = bobberPosition + 12f <= bobberBarPos - 32f + (float)bobberBarHeight && bobberPosition - 16f >= bobberBarPos - 32f;
-        if (bobberPosition >= (float)(548 - bobberBarHeight) && bobberBarPos >= (float)(568 - bobberBarHeight - 4))
+        bobberInBar =
+            bobberPosition + 12f <= bobberBarPos - 32f + (float)bobberBarHeight
+            && bobberPosition - 16f >= bobberBarPos - 32f;
+        if (
+            bobberPosition >= (float)(548 - bobberBarHeight)
+            && bobberBarPos >= (float)(568 - bobberBarHeight - 4)
+        )
         {
             bobberInBar = true;
         }
@@ -328,7 +391,16 @@ public class StepBobberBar : BobberBar
     private void UpdateButtonPress()
     {
         bool wasPressed = buttonPressed;
-        buttonPressed = Game1.oldMouseState.LeftButton == ButtonState.Pressed || Game1.isOneOfTheseKeysDown(Game1.oldKBState, Game1.options.useToolButton) || (Game1.options.gamepadControls && (Game1.oldPadState.IsButtonDown(Buttons.X) || Game1.oldPadState.IsButtonDown(Buttons.A)));
+        buttonPressed =
+            Game1.oldMouseState.LeftButton == ButtonState.Pressed
+            || Game1.isOneOfTheseKeysDown(Game1.oldKBState, Game1.options.useToolButton)
+            || (
+                Game1.options.gamepadControls
+                && (
+                    Game1.oldPadState.IsButtonDown(Buttons.X)
+                    || Game1.oldPadState.IsButtonDown(Buttons.A)
+                )
+            );
         if (!wasPressed && buttonPressed)
         {
             Game1.playSound("fishingRodBend");
@@ -361,11 +433,11 @@ public class StepBobberBar : BobberBar
 
         if (bobberInBar)
         {
-            bool hasBarbedHook = bobbers.Contains(TackleIds.BarbedHook);
+            bool hasBarbedHook = bobbers.Contains(Tackle.BarbedHook);
             step *= (hasBarbedHook ? StepScaleBarbedHook : StepScaleInBar);
             if (hasBarbedHook)
             {
-                for (int i = 0; i < Utility.getStringCountInList(bobbers, TackleIds.BarbedHook); i++)
+                for (int i = 0; i < Utility.getStringCountInList(bobbers, Tackle.BarbedHook); i++)
                 {
                     // Barbed Hook: nudge the bar toward the fish's half each frame.
                     if (bobberPosition + 16f < bobberBarPos + (float)(bobberBarHeight / 2))
@@ -441,7 +513,9 @@ public class StepBobberBar : BobberBar
                 }
                 treasureScale = Math.Min(1f, treasureScale + TreasureScaleStep);
             }
-            treasureInBar = treasurePosition + 12f <= bobberBarPos - 32f + (float)bobberBarHeight && treasurePosition - 16f >= bobberBarPos - 32f;
+            treasureInBar =
+                treasurePosition + 12f <= bobberBarPos - 32f + (float)bobberBarHeight
+                && treasurePosition - 16f >= bobberBarPos - 32f;
             if (treasureInBar && !treasureCaught)
             {
                 treasureCatchLevel += TreasureCatchPerFrame;
@@ -482,12 +556,17 @@ public class StepBobberBar : BobberBar
             barShake = Vector2.Zero;
             Rumble.rumble(0.1f, 1000f);
             unReelSound?.Stop(AudioStopOptions.Immediate);
-            if (reelSound == null || reelSound.IsStopped || reelSound.IsStopping || !reelSound.IsPlaying)
+            if (
+                reelSound == null
+                || reelSound.IsStopped
+                || reelSound.IsStopping
+                || !reelSound.IsPlaying
+            )
             {
-                Game1.playSound("fastReel", out reelSound);
+                Game1.playSound(Sound.FastReel, out reelSound);
             }
         }
-        else if (!treasureInBar || treasureCaught || !bobbers.Contains(TackleIds.TreasureHunter))
+        else if (!treasureInBar || treasureCaught || !bobbers.Contains(Tackle.TreasureHunter))
         {
             if (!fishShake.Equals(Vector2.Zero))
             {
@@ -509,15 +588,22 @@ public class StepBobberBar : BobberBar
                 fishSize = Math.Max(minFishSize, fishSize - 1);
                 fishSizeReductionTimer = FishSizeReductionTimerReset;
             }
-            if ((Game1.player.fishCaught != null && Game1.player.fishCaught.Length != 0) || Game1.currentMinigame != null)
+            if (
+                (Game1.player.fishCaught != null && Game1.player.fishCaught.Length != 0)
+                || Game1.currentMinigame != null
+            )
             {
-                if (bobbers.Contains(TackleIds.TrapBobber))
+                if (bobbers.Contains(Tackle.TrapBobber))
                 {
                     // Trap Bobber: each stacked tackle halves the per-frame catch loss.
                     // Base 0.003, subtract 0.001 then 0.0005 … floored at 0.001.
                     float reduction = 0.003f;
                     float amount = 0.001f;
-                    for (int i = 0; i < Utility.getStringCountInList(bobbers, TackleIds.TrapBobber); i++)
+                    for (
+                        int i = 0;
+                        i < Utility.getStringCountInList(bobbers, Tackle.TrapBobber);
+                        i++
+                    )
                     {
                         reduction -= amount;
                         amount /= 2f;
@@ -527,10 +613,14 @@ public class StepBobberBar : BobberBar
                 }
                 else
                 {
-                    distanceFromCatching -= (beginnersRod ? CatchLossBeginnersRod : CatchLossNormal) * distanceFromCatchPenaltyModifier;
+                    distanceFromCatching -=
+                        (beginnersRod ? CatchLossBeginnersRod : CatchLossNormal)
+                        * distanceFromCatchPenaltyModifier;
                 }
             }
-            float distanceAway = Math.Abs(bobberPosition - (bobberBarPos + (float)(bobberBarHeight / 2)));
+            float distanceAway = Math.Abs(
+                bobberPosition - (bobberBarPos + (float)(bobberBarHeight / 2))
+            );
             reelRotation -= (float)Math.PI / Math.Max(10f, 200f - distanceAway);
             barShake.X = (float)Game1.random.Next(-10, 11) / 10f;
             barShake.Y = (float)Game1.random.Next(-10, 11) / 10f;
@@ -550,26 +640,33 @@ public class StepBobberBar : BobberBar
     /// </summary>
     private void ResolveCatchResult()
     {
-        if (distanceFromCatching <= 0f)
+        if (distanceFromCatching <= 0f || distanceFromCatching >= 1f)
         {
             fadeOut = true;
             everythingShakeTimer = OutcomeShakeMs;
-            Game1.playSound("fishEscape");
             handledFishResult = true;
             unReelSound?.Stop(AudioStopOptions.Immediate);
             reelSound?.Stop(AudioStopOptions.Immediate);
         }
+
+        if (distanceFromCatching <= 0f)
+        {
+            Game1.playSound(Sound.FishEscape);
+        }
         else if (distanceFromCatching >= 1f)
         {
-            everythingShakeTimer = OutcomeShakeMs;
-            Game1.playSound("jingle1");
-            fadeOut = true;
-            handledFishResult = true;
-            unReelSound?.Stop(AudioStopOptions.Immediate);
-            reelSound?.Stop(AudioStopOptions.Immediate);
+            Game1.playSound(Sound.Jingle1);
             if (perfect)
             {
-                SparkleText = new SparklingText(Game1.dialogueFont, Game1.content.LoadString("Strings\\UI:BobberBar_Perfect"), Color.Yellow, Color.White, rainbow: false, 0.1, 1500);
+                SparkleText = new SparklingText(
+                    Game1.dialogueFont,
+                    Game1.content.LoadString(Text.BobberBarPerfect),
+                    Color.Yellow,
+                    Color.White,
+                    rainbow: false,
+                    sparkleFrequency: 0.1,
+                    millisecondsDuration: 1500
+                );
                 if (Game1.isFestival())
                 {
                     Game1.CurrentEvent.perfectFishing();
