@@ -50,8 +50,9 @@ jobs:
           set -euo pipefail
           # Use the well-known direct asset URL (avoids the GitHub REST API,
           # which rate-limits and returns JSON that's awkward to parse in CI).
+          # Note: the release tag is prefixed with "DepotDownloader_".
           depot_version="2.7.4"
-          asset_url="https://github.com/SteamRE/DepotDownloader/releases/download/${depot_version}/DepotDownloader-linux-x64.zip"
+          asset_url="https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_${depot_version}/DepotDownloader-linux-x64.zip"
 
           curl -fsSL --fail -o depotdownloader.zip "$asset_url"
           unzip -o depotdownloader.zip
