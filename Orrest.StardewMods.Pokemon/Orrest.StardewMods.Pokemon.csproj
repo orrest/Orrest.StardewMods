@@ -6,9 +6,9 @@
     <Nullable>enable</Nullable>
     <!-- ModBuildConfig only references 0Harmony.dll when this is enabled. -->
     <EnableHarmony>true</EnableHarmony>
-    <!-- Single source of truth for the mod version. ModBuildConfig injects this
-         into manifest.json's %ProjectVersion% placeholder at build time. -->
-    <Version>1.0.0</Version>
+    <!-- The version is set centrally in ../Directory.Build.props so every mod
+         in the repo shares it. ModBuildConfig injects $(Version) into
+         manifest.json's %ProjectVersion% placeholder at build time. -->
     <RootNamespace>Orrest.StardewMods.Pokemon</RootNamespace>
   </PropertyGroup>
 

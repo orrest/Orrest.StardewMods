@@ -1,12 +1,13 @@
 name: Build & Release
 
-# Builds the SMAPI mod on every push to master and on version tags.
-# On every build the mod zip is uploaded as a CI artifact; on a `v*` tag a
-# GitHub Release is created and the zip is attached to it.
+# Builds every SMAPI mod in this repo on each push to master and on version tags.
+# Each mod is built in parallel via a matrix and packaged into its own zip; on a
+# `v*` tag all zips are attached to a single GitHub Release.
 #
 # The build uses Pathoschild.Stardew.ModBuildConfig, which REQUIRES a Stardew
 # Valley install on disk to resolve the game/SMAPI assemblies. The runners have
-# none, so we download a copy of the game via DepotDownloader before building.
+# none, so the `prepare-game` job downloads the game + installs SMAPI once and
+# shares it with the per-mod build jobs via the actions cache.
 #
 # Required repository secrets:
 #   STEAM_USERNAME  - a Steam account that owns Stardew Valley (app 413150)
@@ -16,6 +17,8 @@ name: Build & Release
 # simplest reliable option is to use an account with Steam Guard disabled (or
 # email Steam Guard that has already trusted this login). Email-guard first
 # logins will block the build because there's no way to enter the code.
+#
+# To build a new mod, just add its name to the `mod` matrix list below.
 on:
   push:
     branches:
@@ -27,21 +30,16 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build mod
+  prepare-game:
+    name: Prepare game (download + SMAPI)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      # Download a copy of Stardew Valley (app 413150, Windows depot 413151)
-      # into ./game. ModBuildConfig needs the game's assemblies to build.
+      # Download a copy of Stardew Valley (app 413150, depot 413151) into ./game.
+      # ModBuildConfig needs the game's assemblies to build.
       - name: Download Stardew Valley via DepotDownloader
         env:
           STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
@@ -93,12 +91,72 @@ jobs:
           test -f "$GITHUB_WORKSPACE/game/StardewModdingAPI.dll"
           test -f "$GITHUB_WORKSPACE/game/smapi-internal/SMAPI.Toolkit.CoreInterfaces.dll"
 
+      # Share the prepared game tree with the per-mod build jobs. The key embeds
+      # the SMAPI version so a SMAPI bump automatically invalidates it.
+      - name: Cache prepared game folder
+        uses: actions/cache/save@v4
+        with:
+          path: game
+          key: stardew-game-smapi-4.5.2-${{ github.run_id }}
+
+  build:
+    name: Build ${{ matrix.mod }}
+    needs: prepare-game
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mod:
+          - Fishing
+          - Pokemon
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # Restore the game tree prepared by `prepare-game`. Falls back to
+      # re-downloading it if the cache missed (best-effort, keeps builds green).
+      - name: Restore prepared game folder
+        id: game-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: game
+          key: stardew-game-smapi-4.5.2-${{ github.run_id }}
+          fail-on-cache-miss: false
+
+      - name: Re-prepare game folder (cache fallback)
+        if: steps.game-cache.outputs.cache-hit != 'true'
+        env:
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+          STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
+        run: |
+          set -euo pipefail
+          depot_version="2.7.4"
+          curl -fsSL --fail -o /tmp/dd.zip "https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_${depot_version}/DepotDownloader-linux-x64.zip"
+          unzip -o /tmp/dd.zip -d /tmp/dd
+          chmod +x /tmp/dd/DepotDownloader
+          /tmp/dd/DepotDownloader -app 413150 -depot 413151 \
+            -username "$STEAM_USERNAME" -password "$STEAM_PASSWORD" \
+            -remember-password -dir "$GITHUB_WORKSPACE/game"
+
+          smapi_version="4.5.2"
+          curl -fsSL --fail -o /tmp/smapi.zip "https://github.com/Pathoschild/SMAPI/releases/download/${smapi_version}/SMAPI-${smapi_version}-installer.zip"
+          mkdir -p /tmp/smapi && unzip -o -q /tmp/smapi.zip -d /tmp/smapi
+          installer_dir="$(find /tmp/smapi -type d -name internal -print -quit)/linux"
+          chmod +x "$installer_dir/SMAPI.Installer"
+          "$installer_dir/SMAPI.Installer" --install --no-prompt --game-path "$GITHUB_WORKSPACE/game"
+
       - name: Build (Release)
         # GamePath points ModBuildConfig at the downloaded game tree.
         # EnableModDeploy=false keeps the build from copying the mod into the
         # downloaded game's Mods folder (we only need the zip).
         run: >-
-          dotnet build Orrest.StardewMods.Fishing/Orrest.StardewMods.Fishing.csproj
+          dotnet build Orrest.StardewMods.${{ matrix.mod }}/Orrest.StardewMods.${{ matrix.mod }}.csproj
           -c Release
           -p:GamePath="$GITHUB_WORKSPACE/game"
           -p:EnableModDeploy=false
@@ -109,7 +167,7 @@ jobs:
         id: zip
         shell: bash
         run: |
-          zip_path="$(find Orrest.StardewMods.Fishing/bin/Release/net6.0 -maxdepth 1 -type f -name 'Orrest.StardewMods.Fishing *.zip' | head -n 1)"
+          zip_path="$(find "Orrest.StardewMods.${{ matrix.mod }}/bin/Release/net6.0" -maxdepth 1 -type f -name 'Orrest.StardewMods.${{ matrix.mod }} *.zip' | head -n 1)"
           if [ -z "$zip_path" ]; then
             echo "::error::No release zip was produced by the build."
             exit 1
@@ -128,15 +186,15 @@ jobs:
 
   release:
     name: Publish GitHub Release
-    # Only on version tags.
+    # Only on version tags. Needs the game prepared and every mod built.
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [prepare-game, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Download build artifact
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true

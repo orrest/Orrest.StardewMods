@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
   </Folder>
   <Project Path="Orrest.StardewMods.Common/Orrest.StardewMods.Common.csproj" Id="a1b2c3d4-e5f6-7890-abcd-ef0123456789" />
