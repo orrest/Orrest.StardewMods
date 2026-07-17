@@ -64,6 +64,35 @@ jobs:
             -remember-password \
             -dir "$GITHUB_WORKSPACE/game"
 
+      # The base game depot doesn't include SMAPI. ModBuildConfig requires
+      # StardewModdingAPI.dll + smapi-internal/ in the game folder, so install
+      # SMAPI non-interactively. The installer flags are documented in SMAPI's
+      # src/SMAPI.Installer/InteractiveInstaller.cs:
+      #   --install     install (vs uninstall)
+      #   --no-prompt   skip interactive color/menu prompts
+      #   --game-path   explicit game folder
+      - name: Install SMAPI into game folder
+        run: |
+          set -euo pipefail
+          smapi_version="4.5.2"
+          installer_url="https://github.com/Pathoschild/SMAPI/releases/download/${smapi_version}/SMAPI-${smapi_version}-installer.zip"
+
+          curl -fsSL --fail -o smapi-installer.zip "$installer_url"
+          mkdir -p smapi-installer
+          unzip -o -q smapi-installer.zip -d smapi-installer
+
+          # Run the Linux installer non-interactively into the game folder.
+          # The top-level extracted dir contains a space ("SMAPI x.y.z installer").
+          installer_dir="$(find smapi-installer -type d -name internal -print -quit)/linux"
+          chmod +x "$installer_dir/SMAPI.Installer"
+          "$installer_dir/SMAPI.Installer" \
+            --install --no-prompt \
+            --game-path "$GITHUB_WORKSPACE/game"
+
+          # Sanity check: ModBuildConfig needs these to exist.
+          test -f "$GITHUB_WORKSPACE/game/StardewModdingAPI.dll"
+          test -f "$GITHUB_WORKSPACE/game/smapi-internal/SMAPI.Toolkit.CoreInterfaces.dll"
+
       - name: Build (Release)
         # GamePath points ModBuildConfig at the downloaded game tree.
         # EnableModDeploy=false keeps the build from copying the mod into the
