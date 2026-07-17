@@ -3,6 +3,19 @@ name: Build & Release
 # Builds the SMAPI mod on every push to master and on version tags.
 # On every build the mod zip is uploaded as a CI artifact; on a `v*` tag a
 # GitHub Release is created and the zip is attached to it.
+#
+# The build uses Pathoschild.Stardew.ModBuildConfig, which REQUIRES a Stardew
+# Valley install on disk to resolve the game/SMAPI assemblies. The runners have
+# none, so we download a copy of the game via DepotDownloader before building.
+#
+# Required repository secrets:
+#   STEAM_USERNAME  - a Steam account that owns Stardew Valley (app 413150)
+#   STEAM_PASSWORD  - that account's password
+#
+# IMPORTANT Steam Guard note: DepotDownloader is non-interactive in CI. The
+# simplest reliable option is to use an account with Steam Guard disabled (or
+# email Steam Guard that has already trusted this login). Email-guard first
+# logins will block the build because there's no way to enter the code.
 on:
   push:
     branches:
@@ -27,8 +40,38 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      # Download a copy of Stardew Valley (app 413150, Windows depot 413151)
+      # into ./game. ModBuildConfig needs the game's assemblies to build.
+      - name: Download Stardew Valley via DepotDownloader
+        env:
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+          STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Pin a specific DepotDownloader release for reproducibility.
+          depot_version="2.7.4"
+          asset_url="$(curl -fsSL "https://api.github.com/repos/SteamRE/DepotDownloader/releases/tags/${depot_version}" \
+            | grep -oP '"browser_download_url":\s*"\K[^"]*DepotDownloader-linux-x64\.zip')"
+
+          curl -fsSL -o depotdownloader.zip "$asset_url"
+          unzip -o depotdownloader.zip -x "*.pdb" "libmono*" "Mono.*" "Swifty*.dll"
+          chmod +x DepotDownloader
+
+          ./DepotDownloader \
+            -app 413150 -depot 413151 \
+            -username "$STEAM_USERNAME" -password "$STEAM_PASSWORD" \
+            -remember-password \
+            -dir "$GITHUB_WORKSPACE/game"
+
       - name: Build (Release)
-        run: dotnet build Orrest.StardewMods.Fishing/Orrest.StardewMods.Fishing.csproj -c Release
+        # GamePath points ModBuildConfig at the downloaded game tree.
+        # EnableModDeploy=false keeps the build from copying the mod into the
+        # downloaded game's Mods folder (we only need the zip).
+        run: >-
+          dotnet build Orrest.StardewMods.Fishing/Orrest.StardewMods.Fishing.csproj
+          -c Release
+          -p:GamePath="$GITHUB_WORKSPACE/game"
+          -p:EnableModDeploy=false
 
       # ModBuildConfig produces a zip named "<ManifestName> <Version>.zip" in the
       # Release output directory. Find its path so the next steps can use it.
