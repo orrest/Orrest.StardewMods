@@ -48,13 +48,13 @@ jobs:
           STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
         run: |
           set -euo pipefail
-          # Pin a specific DepotDownloader release for reproducibility.
+          # Use the well-known direct asset URL (avoids the GitHub REST API,
+          # which rate-limits and returns JSON that's awkward to parse in CI).
           depot_version="2.7.4"
-          asset_url="$(curl -fsSL "https://api.github.com/repos/SteamRE/DepotDownloader/releases/tags/${depot_version}" \
-            | grep -oP '"browser_download_url":\s*"\K[^"]*DepotDownloader-linux-x64\.zip')"
+          asset_url="https://github.com/SteamRE/DepotDownloader/releases/download/${depot_version}/DepotDownloader-linux-x64.zip"
 
-          curl -fsSL -o depotdownloader.zip "$asset_url"
-          unzip -o depotdownloader.zip -x "*.pdb" "libmono*" "Mono.*" "Swifty*.dll"
+          curl -fsSL --fail -o depotdownloader.zip "$asset_url"
+          unzip -o depotdownloader.zip
           chmod +x DepotDownloader
 
           ./DepotDownloader \
